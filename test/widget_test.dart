@@ -7,7 +7,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:thread_clone_flutter/main.dart';
 
+// ignore: depend_on_referenced_packages
 import 'package:threads/main.dart';
 
 void main() {
