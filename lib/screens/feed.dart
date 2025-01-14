@@ -33,40 +33,40 @@ class _FeedScreenState extends State<FeedScreen> {
   String threadDoc = '';
   PanelController panelController = PanelController();
 
-  final List<ThreadMessage> _fakePosts = [
-    ThreadMessage(
-      id: '1',
-      senderId: 'user1',
-      senderName: 'nuui.h',
-      senderProfileImageUrl: 'https://i.pravatar.cc/150?img=1',
-      message: "What's new?",
-      imageUrl: 'assets/ref1.jpg',
-      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-      likes: [],
-      comments: [],
-    ),
-    ThreadMessage(
-      id: '2',
-      senderId: 'user2',
-      senderName: 'ghibliarchives',
-      senderProfileImageUrl: 'https://i.pravatar.cc/150?img=2',
-      message: "Film: Kiki's Delivery Service (1989)",
-      imageUrl: 'assets/oki1.jpg',
-      timestamp: DateTime.now().subtract(const Duration(hours: 4)),
-      likes: [],
-      comments: [],
-    ),
-    ThreadMessage(
-      id: '3',
-      senderId: 'user3',
-      senderName: 'norhudaifha0713',
-      senderProfileImageUrl: 'https://i.pravatar.cc/150?img=3',
-      message: "Yo, ooh this drama breaks me everyday. I want your buy 🥲",
-      imageUrl: 'assets/ref1.jpg',
-      timestamp: DateTime.now().subtract(const Duration(hours: 6)),
-      likes: [],
-      comments: [],
-    ),
+  final List<Map<String, dynamic>> _fakePosts = [
+    {
+      'id': '1',
+      'senderId': 'user1',
+      'sender': 'nuui.h',
+      'senderProfileImageUrl': 'https://i.pravatar.cc/150?img=1',
+      'message': "What's new?",
+      'imageUrl': 'https://picsum.photos/500/300?random=1',
+      'timestamp': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 2))),
+      'likes': [],
+      'comments': [],
+    },
+    {
+      'id': '2',
+      'senderId': 'user2',
+      'sender': 'ghibliarchives',
+      'senderProfileImageUrl': 'https://i.pravatar.cc/150?img=2',
+      'message': "Film: Kiki's Delivery Service (1989)",
+      'imageUrl': 'https://picsum.photos/500/300?random=2',
+      'timestamp': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 4))),
+      'likes': [],
+      'comments': [],
+    },
+    {
+      'id': '3',
+      'senderId': 'user3',
+      'sender': 'norhudaifha0713',
+      'senderProfileImageUrl': 'https://i.pravatar.cc/150?img=3',
+      'message': "Yo, ooh this drama breaks me everyday. I want your buy 🥲",
+      'imageUrl': 'https://picsum.photos/500/300?random=3',
+      'timestamp': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 6))),
+      'likes': [],
+      'comments': [],
+    },
   ];
 
   @override
@@ -77,23 +77,30 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   Future<void> _initializeFakeData() async {
-    // Add fake data to Firestore
-    for (var post in _fakePosts) {
-      await threadCollection.doc(post.id).set({
-        'id': post.id,
-        'senderId': post.senderId,
-        'sender': post.senderName,
-        'senderProfileImageUrl': post.senderProfileImageUrl,
-        'message': post.message,
-        'imageUrl': post.imageUrl,
-        'timestamp': Timestamp.fromDate(post.timestamp),
-        'likes': post.likes,
-        'comments': post.comments,
-      }, SetOptions(merge: true));
+    try {
+      // Clear existing data first
+      QuerySnapshot existingDocs = await threadCollection.get();
+      for (var doc in existingDocs.docs) {
+        await doc.reference.delete();
+      }
+
+      // Add fake data
+      for (var post in _fakePosts) {
+        await threadCollection.add(post);
+      }
+      
+      setState(() {
+        _hasData = true;
+      });
+    } catch (e) {
+      debugPrint('Error initializing fake data: $e');
     }
-    setState(() {
-      _hasData = true;
-    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _onScroll() {

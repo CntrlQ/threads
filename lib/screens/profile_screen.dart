@@ -57,7 +57,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     userStream = fetchUserData();
+    _initializeFakeData();
     super.initState();
+  }
+
+  Future<void> _initializeFakeData() async {
+    try {
+      // Add fake user data if not exists
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser!.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser!.uid)
+            .set({
+          'id': currentUser!.uid,
+          'name': 'John Doe',
+          'username': 'johndoe',
+          'profileImageUrl': 'https://i.pravatar.cc/150?img=3',
+          'bio': 'Flutter Developer | Coffee Lover ☕️ | Building awesome apps',
+          'followers': [],
+          'following': [],
+        });
+      }
+
+      // Add fake threads
+      final fakePosts = [
+        {
+          'id': '1',
+          'sender': 'John Doe',
+          'message': 'Just shipped a new feature! 🚀',
+          'timestamp': Timestamp.fromDate(
+              DateTime.now().subtract(const Duration(hours: 2))),
+          'likes': [],
+          'comments': [],
+        },
+        {
+          'id': '2',
+          'sender': 'John Doe',
+          'message': 'Flutter is amazing for building cross-platform apps 💙',
+          'timestamp': Timestamp.fromDate(
+              DateTime.now().subtract(const Duration(days: 1))),
+          'likes': [],
+          'comments': [],
+        },
+        {
+          'id': '3',
+          'sender': 'John Doe',
+          'message': 'Working on something exciting! Stay tuned 👨‍💻',
+          'timestamp': Timestamp.fromDate(
+              DateTime.now().subtract(const Duration(days: 2))),
+          'likes': [],
+          'comments': [],
+        },
+      ];
+
+      for (var post in fakePosts) {
+        await threadCollection.add(post);
+      }
+    } catch (e) {
+      debugPrint('Error initializing fake data: $e');
+    }
+  }
+
+  Widget _buildLoadingIndicator() {
+    return const Center(
+      child: SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+        ),
+      ),
+    );
   }
 
   @override
@@ -77,19 +153,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return StreamBuilder<UserModel>(
               stream: userStream,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.active) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _buildLoadingIndicator();
+                }
+                if (snapshot.hasData) {
                   final UserModel? user = snapshot.data;
                   if (user != null) {
                     return EditProfile(
                         panelController: panelController, user: user);
-                  } else {
-                    return const Center(
-                      child: Text("No user"),
-                    );
                   }
-                } else {
-                  return const CircularProgressIndicator();
                 }
+                return const Center(
+                  child: Text("No user data available"),
+                );
               },
             );
           },
@@ -99,7 +175,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: StreamBuilder<UserModel>(
                 stream: userStream,
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.active) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return _buildLoadingIndicator();
+                  }
+                  if (snapshot.hasData) {
                     final UserModel? user = snapshot.data;
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
