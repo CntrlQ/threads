@@ -35,7 +35,6 @@ class FavoriteScreen extends StatefulWidget {
 }
 
 class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProviderStateMixin {
-  int _currentIndexTab = 0;
   late TabController _tabController;
 
   final List<ActivityItem> _allActivities = [
@@ -68,21 +67,22 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
       timeAgo: '2d',
       isFollowing: true,
     ),
+  ];
+
+  final List<ActivityItem> _followActivities = [
     ActivityItem(
-      userId: '4',
-      username: 'y__k65q__',
-      profileImage: 'https://i.pravatar.cc/150?img=4',
-      subtitle: 'Picked for you',
-      timeAgo: '3d',
-      content: "Princess treatment 😒 WhenThePhoneRings",
-      likes: 10,
-      comments: 3,
+      userId: '3',
+      username: 'logifestyle',
+      profileImage: 'https://i.pravatar.cc/150?img=3',
+      subtitle: "Started following you",
+      timeAgo: '2d',
+      isFollowing: true,
     ),
     ActivityItem(
       userId: '5',
       username: 'nisma_navas',
       profileImage: 'https://i.pravatar.cc/150?img=5',
-      subtitle: 'Follow suggestion',
+      subtitle: 'Started following you',
       timeAgo: '1w',
       isFollowing: true,
     ),
@@ -92,17 +92,33 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(() {
-      setState(() {
-        _currentIndexTab = _tabController.index;
-      });
-    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.notifications_none, size: 48, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -122,8 +138,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(50),
-          child: Align(
-            alignment: Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
             child: TabBar(
               controller: _tabController,
               isScrollable: true,
@@ -133,6 +149,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(20),
               ),
+              indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: Colors.transparent,
               tabs: [
                 _buildTab('All'),
@@ -144,29 +161,33 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
           ),
         ),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 16, top: 16, bottom: 8),
-            child: Text(
-              'Previous',
-              style: TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.zero,
-              itemCount: _allActivities.length,
-              itemBuilder: (context, index) {
-                final activity = _allActivities[index];
-                return _buildActivityItem(activity);
-              },
-            ),
-          ),
+          // All Tab
+          _allActivities.isEmpty
+              ? _buildEmptyState('No activity yet')
+              : ListView.builder(
+                  padding: const EdgeInsets.only(top: 16),
+                  itemCount: _allActivities.length,
+                  itemBuilder: (context, index) {
+                    return _buildActivityItem(_allActivities[index]);
+                  },
+                ),
+          // Follows Tab
+          _followActivities.isEmpty
+              ? _buildEmptyState('No follows yet')
+              : ListView.builder(
+                  padding: const EdgeInsets.only(top: 16),
+                  itemCount: _followActivities.length,
+                  itemBuilder: (context, index) {
+                    return _buildActivityItem(_followActivities[index]);
+                  },
+                ),
+          // Replies Tab
+          _buildEmptyState('No replies yet'),
+          // Mentions Tab
+          _buildEmptyState('No mentions yet'),
         ],
       ),
     );
@@ -250,74 +271,68 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
                       ),
                     ],
                     if (activity.content != null) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Text(
                         activity.content!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                        ),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                    if (activity.likes != null || activity.comments != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          if (activity.likes != null) ...[
+                            Icon(Icons.favorite_border, size: 14, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${activity.likes}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                          if (activity.likes != null && activity.comments != null)
+                            const SizedBox(width: 16),
+                          if (activity.comments != null) ...[
+                            Icon(Icons.chat_bubble_outline, size: 14, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${activity.comments}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ],
                 ),
               ),
-              if (activity.isFollowing) ...[
-                TextButton(
+              if (activity.isFollowing)
+                OutlinedButton(
                   onPressed: () {},
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    side: BorderSide(color: Colors.grey.shade300),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.grey),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
-                  child: Text(
+                  child: const Text(
                     'Following',
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: Colors.black,
                       fontSize: 13,
                     ),
                   ),
                 ),
-              ],
             ],
           ),
-          if (activity.likes != null || activity.comments != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _buildInteractionButton(Icons.favorite_border, activity.likes),
-                const SizedBox(width: 16),
-                _buildInteractionButton(Icons.chat_bubble_outline, activity.comments),
-                const SizedBox(width: 16),
-                _buildInteractionButton(Icons.repeat, null),
-                const SizedBox(width: 16),
-                _buildInteractionButton(Icons.send, null),
-              ],
-            ),
-          ],
         ],
       ),
-    );
-  }
-
-  Widget _buildInteractionButton(IconData icon, int? count) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: Colors.black54),
-        if (count != null && count > 0) ...[
-          const SizedBox(width: 4),
-          Text(
-            count.toString(),
-            style: const TextStyle(
-              fontSize: 13,
-              color: Colors.black54,
-            ),
-          ),
-        ],
-      ],
     );
   }
 }
