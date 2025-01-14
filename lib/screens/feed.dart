@@ -1,7 +1,9 @@
+import 'package:animations/animations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:thread_clone_flutter/model/thread_message.dart';
 // import 'package:thread_clone_flutter/model/thread_message.dart';
 // import 'package:thread_clone_flutter/screens/comment_screen.dart';
 import 'package:thread_clone_flutter/screens/post_comment_screen.dart';

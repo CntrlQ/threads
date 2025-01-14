@@ -20,6 +20,10 @@ class ThreadMessage {
     required this.comments,
   });
 
+  get senderId => null;
+
+  get imageUrl => null;
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
