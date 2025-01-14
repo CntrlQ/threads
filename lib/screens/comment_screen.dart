@@ -57,7 +57,6 @@ class _CommentScreenState extends State<CommentScreen> {
                 onDisLike: () {},
                 onComment: () {},
                 panelController: widget.panelController,
-                senderId: widget.message.senderId,
               ),
               StreamBuilder(
                 stream: threadCollection.doc(widget.threadId).snapshots(),
@@ -111,7 +110,6 @@ class _CommentScreenState extends State<CommentScreen> {
                                 onDisLike: () {},
                                 onComment: () {},
                                 panelController: widget.panelController,
-                                senderId: user.id,
                               );
                             });
                       });
