@@ -57,6 +57,7 @@ class _PostCommentScreenState extends State<PostCommentScreen> {
         timestamp: DateTime.now(),
         likes: [],
         comments: [],
+        senderId: id,
       );
     } catch (e) {
       debugPrint('Error fetching sender details: ${e.toString()}');

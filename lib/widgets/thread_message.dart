@@ -12,7 +12,7 @@ class ThreadMessageWidget extends StatefulWidget {
     required this.onLike,
     required this.onDisLike,
     required this.onComment,
-    required this.panelController,
+    required this.panelController, required String senderId,
   });
 
   final ThreadMessage message;
