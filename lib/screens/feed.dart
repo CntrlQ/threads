@@ -28,20 +28,72 @@ class _FeedScreenState extends State<FeedScreen> {
   final userId = FirebaseAuth.instance.currentUser!.uid;
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
+  bool _hasData = false;
 
   String threadDoc = '';
   PanelController panelController = PanelController();
+
+  final List<ThreadMessage> _fakePosts = [
+    ThreadMessage(
+      id: '1',
+      senderId: 'user1',
+      senderName: 'nuui.h',
+      senderProfileImageUrl: 'https://i.pravatar.cc/150?img=1',
+      message: "What's new?",
+      imageUrl: 'assets/ref1.jpg',
+      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+      likes: [],
+      comments: [],
+    ),
+    ThreadMessage(
+      id: '2',
+      senderId: 'user2',
+      senderName: 'ghibliarchives',
+      senderProfileImageUrl: 'https://i.pravatar.cc/150?img=2',
+      message: "Film: Kiki's Delivery Service (1989)",
+      imageUrl: 'assets/oki1.jpg',
+      timestamp: DateTime.now().subtract(const Duration(hours: 4)),
+      likes: [],
+      comments: [],
+    ),
+    ThreadMessage(
+      id: '3',
+      senderId: 'user3',
+      senderName: 'norhudaifha0713',
+      senderProfileImageUrl: 'https://i.pravatar.cc/150?img=3',
+      message: "Yo, ooh this drama breaks me everyday. I want your buy 🥲",
+      imageUrl: 'assets/ref1.jpg',
+      timestamp: DateTime.now().subtract(const Duration(hours: 6)),
+      likes: [],
+      comments: [],
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _initializeFakeData();
   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
+  Future<void> _initializeFakeData() async {
+    // Add fake data to Firestore
+    for (var post in _fakePosts) {
+      await threadCollection.doc(post.id).set({
+        'id': post.id,
+        'senderId': post.senderId,
+        'sender': post.senderName,
+        'senderProfileImageUrl': post.senderProfileImageUrl,
+        'message': post.message,
+        'imageUrl': post.imageUrl,
+        'timestamp': Timestamp.fromDate(post.timestamp),
+        'likes': post.likes,
+        'comments': post.comments,
+      }, SetOptions(merge: true));
+    }
+    setState(() {
+      _hasData = true;
+    });
   }
 
   void _onScroll() {
@@ -76,17 +128,18 @@ class _FeedScreenState extends State<FeedScreen> {
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,
       child: ListView.builder(
-        itemCount: 5,
+        itemCount: 3,
+        padding: const EdgeInsets.all(16),
         itemBuilder: (context, index) => Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.only(bottom: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 48,
+                    height: 48,
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
@@ -98,14 +151,14 @@ class _FeedScreenState extends State<FeedScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 100,
-                          height: 12,
+                          width: 120,
+                          height: 16,
                           color: Colors.white,
                         ),
                         const SizedBox(height: 8),
                         Container(
                           width: double.infinity,
-                          height: 8,
+                          height: 12,
                           color: Colors.white,
                         ),
                       ],
@@ -116,11 +169,12 @@ class _FeedScreenState extends State<FeedScreen> {
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,
-                height: 200,
-                color: Colors.white,
+                height: 250,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              const SizedBox(height: 16),
-              const Divider(),
             ],
           ),
         ),
@@ -157,62 +211,86 @@ class _FeedScreenState extends State<FeedScreen> {
             );
           },
           body: RefreshIndicator(
+            color: Colors.black,
             onRefresh: () async {
-              // Implement refresh logic
+              setState(() {
+                _hasData = false;
+              });
+              await Future.delayed(const Duration(seconds: 1));
+              await _initializeFakeData();
             },
-            child: StreamBuilder<QuerySnapshot>(
-              stream: threadCollection
-                  .orderBy('timestamp', descending: true)
-                  .limit(20)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _buildLoadingShimmer();
-                }
+            child: !_hasData
+                ? _buildLoadingShimmer()
+                : StreamBuilder<QuerySnapshot>(
+                    stream: threadCollection
+                        .orderBy('timestamp', descending: true)
+                        .limit(20)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return _buildLoadingShimmer();
+                      }
 
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
-                }
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Error: ${snapshot.error}',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text('No threads yet'),
-                  );
-                }
-
-                return AnimationLimiter(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (context, index) {
-                      final doc = snapshot.data!.docs[index];
-                      final data = doc.data() as Map<String, dynamic>;
-                      final threadMessage = ThreadMessage.fromMap(data);
-
-                      return AnimationConfiguration.staggeredList(
-                        position: index,
-                        duration: const Duration(milliseconds: 375),
-                        child: SlideAnimation(
-                          verticalOffset: 50.0,
-                          child: FadeInAnimation(
-                            child: ThreadMessageWidget(
-                              message: threadMessage,
-                              onLike: () => likeThreadMessage(doc.id),
-                              onDisLike: () => dislikeThreadMessage(doc.id),
-                              onComment: () => setState(() => threadDoc = doc.id),
-                              panelController: panelController,
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No threads yet',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
                             ),
                           ),
+                        );
+                      }
+
+                      return AnimationLimiter(
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: snapshot.data!.docs.length,
+                          itemBuilder: (context, index) {
+                            final doc = snapshot.data!.docs[index];
+                            final data = doc.data() as Map<String, dynamic>;
+                            final threadMessage = ThreadMessage.fromMap(data);
+
+                            return AnimationConfiguration.staggeredList(
+                              position: index,
+                              duration: const Duration(milliseconds: 375),
+                              child: SlideAnimation(
+                                verticalOffset: 50.0,
+                                child: FadeInAnimation(
+                                  child: ThreadMessageWidget(
+                                    message: threadMessage,
+                                    onLike: () => likeThreadMessage(doc.id),
+                                    onDisLike: () => dislikeThreadMessage(doc.id),
+                                    onComment: () => setState(() => threadDoc = doc.id),
+                                    panelController: panelController,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       );
                     },
                   ),
-                );
-              },
-            ),
           ),
         ),
       ),
