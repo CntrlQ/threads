@@ -5,7 +5,11 @@ import 'package:sliding_up_panel/sliding_up_panel.dart';
 // import 'package:thread_clone_flutter/model/thread_message.dart';
 // import 'package:thread_clone_flutter/screens/comment_screen.dart';
 import 'package:thread_clone_flutter/screens/post_comment_screen.dart';
-// import 'package:thread_clone_flutter/widgets/thread_message.dart';
+
+import 'package:thread_clone_flutter/widgets/thread_message.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:shimmer/shimmer.dart';
+
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -20,9 +24,35 @@ class _FeedScreenState extends State<FeedScreen> {
   final CollectionReference userCollection =
       FirebaseFirestore.instance.collection('users');
   final userId = FirebaseAuth.instance.currentUser!.uid;
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoading = false;
 
   String threadDoc = '';
   PanelController panelController = PanelController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoading) {
+      // Load more posts
+      _loadMorePosts();
+    }
+  }
+
+  Future<void> _loadMorePosts() async {
+    // Implement pagination logic here
+  }
 
   Future<String> getSenderImageUrl(String id) async {
     try {
@@ -39,72 +69,59 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
-  Widget _buildPost({
-    required String profileImage,
-    required String username,
-    required String caption,
-    required List<String> postImages,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+  Widget _buildLoadingShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: ListView.builder(
+        itemCount: 5,
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                backgroundImage: NetworkImage(profileImage),
-                radius: 20,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                username,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            caption,
-            style: const TextStyle(fontSize: 14),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 200,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: postImages.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.asset(
-                      postImages[index],
-                      width: 150,
-                      fit: BoxFit.cover,
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
                     ),
                   ),
-                );
-              },
-            ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 12,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          height: 8,
+                          color: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                height: 200,
+                color: Colors.white,
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -112,7 +129,16 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        title: Image.asset(
+          'assets/threads_logo.png',
+          height: 32,
+        ),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: SlidingUpPanel(
           controller: panelController,
@@ -128,38 +154,77 @@ class _FeedScreenState extends State<FeedScreen> {
               panelController: panelController,
             );
           },
-          body: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            children: [
-              _buildPost(
-                profileImage: 'https://i.pravatar.cc/150?img=1',
-                username: 'nuui.h',
-                caption: "New year, New me.",
-                postImages: ['assets/ref1.jpg', 'assets/ref2.jpg', 'assets/ref3.jpg'],
-              ),
-              const SizedBox(height: 16),
-              _buildPost(
-                profileImage: 'https://i.pravatar.cc/150?img=2',
-                username: 'ghibliarchives',
-                caption: "Film: Kiki's Delivery Service (1989)",
-                postImages: ['assets/oki1.jpg', 'assets/oki2.jpg'],
-              ),
-              const SizedBox(height: 16),
-              _buildPost(
-                profileImage: 'https://i.pravatar.cc/150?img=3',
-                username: 'nihal',
-                caption: "Yo, ooh this drama breaks me everyday. I want to eat your pancreas🥲",
-                postImages: ['assets/ref1.jpg', 'assets/oki1.jpg'],
-              ),
-               const SizedBox(height: 16),
-              // _buildPost(
-              //   profileImage: 'https://i.pravatar.cc/150?img=2',
-              //   username: 'ghibliarchives',
-              //   caption: "Film: Kiki's Delivery Service (1989)",
-              //   postImages: ['assets/oki1.jpg', 'assets/oki2.jpg'],
-              // ),
-              const SizedBox(height: 16),
-            ],
+          body: RefreshIndicator(
+            onRefresh: () async {
+              // Implement refresh logic
+            },
+            child: StreamBuilder<QuerySnapshot>(
+              stream: threadCollection
+                  .orderBy('timestamp', descending: true)
+                  .limit(20)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _buildLoadingShimmer();
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text('Error: ${snapshot.error}'),
+                  );
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text('No threads yet'),
+                  );
+                }
+
+                return AnimationLimiter(
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: snapshot.data!.docs.length,
+                    itemBuilder: (context, index) {
+                      final doc = snapshot.data!.docs[index];
+                      final data = doc.data() as Map<String, dynamic>;
+                      final threadMessage = ThreadMessage.fromMap(data);
+
+                      return AnimationConfiguration.staggeredList(
+                        position: index,
+                        duration: const Duration(milliseconds: 375),
+                        child: SlideAnimation(
+                          verticalOffset: 50.0,
+                          child: FadeInAnimation(
+                            child: ThreadMessageWidget(
+                              message: threadMessage,
+                              onLike: () => likeThreadMessage(doc.id),
+                              onDisLike: () => dislikeThreadMessage(doc.id),
+                              onComment: () => setState(() => threadDoc = doc.id),
+                              panelController: panelController,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+      floatingActionButton: OpenContainer(
+        transitionDuration: const Duration(milliseconds: 500),
+        openBuilder: (context, _) => const PostCommentScreen(),
+        closedShape: const CircleBorder(),
+        closedColor: Colors.black,
+        closedBuilder: (context, openContainer) => FloatingActionButton(
+          backgroundColor: Colors.black,
+          onPressed: openContainer,
+          child: const Icon(
+            Icons.edit,
+            color: Colors.white,
           ),
         ),
       ),
