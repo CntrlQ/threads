@@ -33,6 +33,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
+
   cached_network_image:
     dependency: "direct main"
     description:
@@ -137,6 +138,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.2"
+
   ffi:
     dependency: transitive
     description:
@@ -496,6 +498,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.15"
+
   path_provider_foundation:
     dependency: transitive
     description:
@@ -605,6 +608,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.0"
+
   sqflite_common:
     dependency: transitive
     description:
@@ -629,6 +633,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.0"
+
   stack_trace:
     dependency: transitive
     description:
@@ -661,6 +666,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.3.0+3"
+
   term_glyph:
     dependency: transitive
     description:
