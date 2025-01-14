@@ -86,9 +86,30 @@ class _CommentScreenState extends State<CommentScreen> {
                             stream: fetchUserData(comment['id']),
                             builder: (context, snapshot) {
                               if (!snapshot.hasData) {
-                                return const CircularProgressIndicator();
+                                return const Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                                    ),
+                                  ),
+                                );
                               } else if (snapshot.hasError) {
-                                return Text('Error: ${snapshot.error}');
+                                return Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Error: ${snapshot.error}',
+                                        style: const TextStyle(color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                );
                               }
                               final user = snapshot.data!;
 
