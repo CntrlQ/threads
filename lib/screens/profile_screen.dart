@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:thread_clone_flutter/model/thread_message.dart';
@@ -14,126 +12,64 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  final currentUser = FirebaseAuth.instance.currentUser;
-  late Stream<UserModel> userStream;
-  final CollectionReference threadCollection =
-      FirebaseFirestore.instance.collection('threads');
+class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
   PanelController panelController = PanelController();
-
+  late TabController _tabController;
   bool isPanelOpen = false;
-  Stream<UserModel> fetchUserData() {
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUser!.uid)
-        .snapshots()
-        .map((doc) => UserModel.fromMap(doc.data() as Map<String, dynamic>));
-  }
 
-  Stream<List<ThreadMessage>> fetchUserThreads(UserModel user) {
-    return FirebaseFirestore.instance
-        .collection('threads')
-        .where('sender', isEqualTo: user.name)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final messageData = doc.data();
-        final timestamp = (messageData['timestamp'] as Timestamp).toDate();
-        return ThreadMessage(
-          id: doc.id,
-          senderName: messageData['sender'],
-          senderProfileImageUrl: user.profileImageUrl ??
-              'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRz8cLf8-P2P8GZ0-KiQ-OXpZQ4bebpa3K3Dw&usqp=CAU',
-          message: messageData['message'],
-          timestamp: timestamp,
-          likes: messageData['likes'] ?? [],
-          comments: messageData['comments'] ?? [],
-          senderId: user.id,
-        );
-      }).toList();
-    });
-  }
+  final UserModel _fakeUser = UserModel(
+    id: '1',
+    name: 'John Doe',
+    username: 'johndoe',
+    profileImageUrl: 'https://i.pravatar.cc/150?img=3',
+    bio: 'Flutter Developer | Coffee Lover ☕️ | Building awesome apps',
+    followers: ['user1', 'user2', 'user3'],
+    following: ['user4', 'user5'],
+  );
+
+  final List<ThreadMessage> _fakeThreads = [
+    ThreadMessage(
+      id: '1',
+      senderId: '1',
+      senderName: 'John Doe',
+      senderProfileImageUrl: 'https://i.pravatar.cc/150?img=3',
+      message: 'Just shipped a new feature! 🚀',
+      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+      likes: ['user1', 'user2'],
+      comments: ['Great job!', 'Amazing work!'],
+    ),
+    ThreadMessage(
+      id: '2',
+      senderId: '1',
+      senderName: 'John Doe',
+      senderProfileImageUrl: 'https://i.pravatar.cc/150?img=3',
+      message: 'Flutter is amazing for building cross-platform apps 💙',
+      timestamp: DateTime.now().subtract(const Duration(days: 1)),
+      likes: ['user3'],
+      comments: ['Totally agree!'],
+    ),
+    ThreadMessage(
+      id: '3',
+      senderId: '1',
+      senderName: 'John Doe',
+      senderProfileImageUrl: 'https://i.pravatar.cc/150?img=3',
+      message: 'Working on something exciting! Stay tuned 👨‍💻',
+      timestamp: DateTime.now().subtract(const Duration(days: 2)),
+      likes: [],
+      comments: [],
+    ),
+  ];
 
   @override
   void initState() {
-    userStream = fetchUserData();
-    _initializeFakeData();
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
   }
 
-  Future<void> _initializeFakeData() async {
-    try {
-      // Add fake user data if not exists
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser!.uid)
-          .get();
-
-      if (!userDoc.exists) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(currentUser!.uid)
-            .set({
-          'id': currentUser!.uid,
-          'name': 'John Doe',
-          'username': 'johndoe',
-          'profileImageUrl': 'https://i.pravatar.cc/150?img=3',
-          'bio': 'Flutter Developer | Coffee Lover ☕️ | Building awesome apps',
-          'followers': [],
-          'following': [],
-        });
-      }
-
-      // Add fake threads
-      final fakePosts = [
-        {
-          'id': '1',
-          'sender': 'John Doe',
-          'message': 'Just shipped a new feature! 🚀',
-          'timestamp': Timestamp.fromDate(
-              DateTime.now().subtract(const Duration(hours: 2))),
-          'likes': [],
-          'comments': [],
-        },
-        {
-          'id': '2',
-          'sender': 'John Doe',
-          'message': 'Flutter is amazing for building cross-platform apps 💙',
-          'timestamp': Timestamp.fromDate(
-              DateTime.now().subtract(const Duration(days: 1))),
-          'likes': [],
-          'comments': [],
-        },
-        {
-          'id': '3',
-          'sender': 'John Doe',
-          'message': 'Working on something exciting! Stay tuned 👨‍💻',
-          'timestamp': Timestamp.fromDate(
-              DateTime.now().subtract(const Duration(days: 2))),
-          'likes': [],
-          'comments': [],
-        },
-      ];
-
-      for (var post in fakePosts) {
-        await threadCollection.add(post);
-      }
-    } catch (e) {
-      debugPrint('Error initializing fake data: $e');
-    }
-  }
-
-  Widget _buildLoadingIndicator() {
-    return const Center(
-      child: SizedBox(
-        width: 24,
-        height: 24,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-        ),
-      ),
-    );
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
@@ -150,206 +86,166 @@ class _ProfileScreenState extends State<ProfileScreen> {
             topRight: Radius.circular(25),
           ),
           panelBuilder: (ScrollController sc) {
-            return StreamBuilder<UserModel>(
-              stream: userStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _buildLoadingIndicator();
-                }
-                if (snapshot.hasData) {
-                  final UserModel? user = snapshot.data;
-                  if (user != null) {
-                    return EditProfile(
-                        panelController: panelController, user: user);
-                  }
-                }
-                return const Center(
-                  child: Text("No user data available"),
-                );
-              },
+            return EditProfile(
+              panelController: panelController,
+              user: _fakeUser,
             );
           },
           body: SafeArea(
-              child: Padding(
-            padding: const EdgeInsets.all(30.0),
-            child: StreamBuilder<UserModel>(
-                stream: userStream,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return _buildLoadingIndicator();
-                  }
-                  if (snapshot.hasData) {
-                    final UserModel? user = snapshot.data;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      _fakeUser.name,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '@${_fakeUser.username}',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                    trailing: CircleAvatar(
+                      backgroundImage: NetworkImage(_fakeUser.profileImageUrl ?? 'https://i.pravatar.cc/150?img=3'),
+                      radius: 25,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _fakeUser.bio ?? 'User Bio',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text(
+                        '${_fakeUser.followers.length} followers',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        '${_fakeUser.following.length} following',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            if (isPanelOpen) {
+                              panelController.close();
+                            } else {
+                              panelController.open();
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.grey),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Edit profile',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {},
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.grey),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Share profile',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: Colors.black,
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: Colors.black,
+                    tabs: const [
+                      Tab(text: 'Threads'),
+                      Tab(text: 'Replies'),
+                      Tab(text: 'Reposts'),
+                    ],
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
                       children: [
-                        ListTile(
-                          title: Text(user?.name ?? ""),
-                          subtitle: Text('@${user?.username ?? ""}'),
-                          contentPadding: const EdgeInsets.all(0),
-                          trailing: user?.profileImageUrl != null
-                              ? CircleAvatar(
-                                  backgroundImage:
-                                      NetworkImage(user?.profileImageUrl ?? ""),
-                                  radius: 25,
-                                )
-                              : const CircleAvatar(
-                                  backgroundImage: NetworkImage(
-                                    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRz8cLf8-P2P8GZ0-KiQ-OXpZQ4bebpa3K3Dw&usqp=CAU',
-                                  ),
-                                  radius: 25,
-                                ),
+                        // Threads Tab
+                        ListView.builder(
+                          itemCount: _fakeThreads.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: ThreadMessageWidget(
+                                message: _fakeThreads[index],
+                                onLike: () {},
+                                onDisLike: () {},
+                                onComment: () {},
+                                panelController: panelController,
+                              ),
+                            );
+                          },
                         ),
-                        Text(user?.bio ?? 'Bio needs to be here...'),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 15.0),
-                          child: Row(
-                            children: [
-                              Text(
-                                '${user!.followers.length.toString()} followers',
-                                style: const TextStyle(color: Colors.grey),
-                              ),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 8.0),
-                                child: Text(
-                                  '${user.following.length.toString()} following',
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                              ),
-                            ],
+                        // Replies Tab
+                        const Center(
+                          child: Text(
+                            'No replies yet',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 15.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              InkWell(
-                                onTap: () {
-                                  if (isPanelOpen) {
-                                    panelController.close();
-                                  } else {
-                                    panelController.open();
-                                  }
-                                },
-                                child: Container(
-                                  alignment: Alignment.center,
-                                  width: 150,
-                                  height: 30,
-                                  decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey),
-                                      borderRadius: BorderRadius.circular(8)),
-                                  child: const Text('Edit profile'),
-                                ),
-                              ),
-                              InkWell(
-                                onTap: () {},
-                                child: Container(
-                                  alignment: Alignment.center,
-                                  width: 150,
-                                  height: 30,
-                                  decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey),
-                                      borderRadius: BorderRadius.circular(8)),
-                                  child: const Text('Share profile'),
-                                ),
-                              ),
-                            ],
+                        // Reposts Tab
+                        const Center(
+                          child: Text(
+                            'No reposts yet',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 25),
-                        const TabBar(
-                          labelColor: Colors.black,
-                          indicatorColor: Colors.black,
-                          tabs: [
-                            Tab(text: 'Threads'),
-                            Tab(text: 'Replies'),
-                            Tab(text: 'Reposts'),
-                          ],
-                        ),
-                        Expanded(
-                          child: TabBarView(
-                            children: [
-                              StreamBuilder(
-                                stream: fetchUserThreads(user),
-                                builder: (context, snapshot) {
-                                  if (snapshot.hasData) {
-                                    final userThread = snapshot.data;
-                                    return ListView.builder(
-                                      itemCount: userThread!.length,
-                                      itemBuilder: (context, index) {
-                                        final messageData = userThread[index];
-                                        final message = ThreadMessage(
-                                            id: messageData.id,
-                                            senderName: messageData.senderName,
-                                            senderProfileImageUrl: user
-                                                    .profileImageUrl ??
-                                                'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRz8cLf8-P2P8GZ0-KiQ-OXpZQ4bebpa3K3Dw&usqp=CAU',
-                                            message: messageData.message,
-                                            timestamp: messageData.timestamp,
-                                            likes: messageData.likes,
-                                            comments: messageData.comments,
-                                            senderId: user.id);
-                                        return ThreadMessageWidget(
-                                          message: message,
-                                          onDisLike: () => dislikeThreadMessage(
-                                              userThread[index].id),
-                                          onLike: () => likeThreadMessage(
-                                              userThread[index].id),
-                                          onComment: () {},
-                                          panelController: panelController,
-                                        );
-                                      },
-                                    );
-                                  } else if (snapshot.hasError) {
-                                    Center(
-                                      child: Text('Error: ${snapshot.error}'),
-                                    );
-                                  }
-                                  return const Center(
-                                    child: CircularProgressIndicator(),
-                                  );
-                                },
-                              ),
-                              const Center(
-                                child: Text('Your replies here'),
-                              ),
-                              const Center(
-                                child: Text('Your reposts here'),
-                              ),
-                            ],
-                          ),
-                        )
                       ],
-                    );
-                  } else {
-                    return const CircularProgressIndicator();
-                  }
-                }),
-          )),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
-  }
-
-  Future<void> likeThreadMessage(String id) async {
-    try {
-      threadCollection.doc(id).update({
-        'likes': FieldValue.arrayUnion([currentUser!.uid])
-      });
-    } catch (e) {
-      debugPrint(e.toString());
-    }
-  }
-
-  Future<void> dislikeThreadMessage(String id) async {
-    try {
-      threadCollection.doc(id).update({
-        'likes': FieldValue.arrayRemove([currentUser!.uid])
-      });
-    } catch (e) {
-      debugPrint(e.toString());
-    }
   }
 }

@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:thread_clone_flutter/model/user.dart';
@@ -18,141 +16,107 @@ class PostScreen extends StatefulWidget {
 class _PostScreenState extends State<PostScreen> {
   final messageController = TextEditingController();
 
-  final currentUser = FirebaseAuth.instance.currentUser;
-  late Future<UserModel> fetchUser;
-  Future<void> postThreadMessage(String username) async {
-    try {
-      if (messageController.text.isNotEmpty) {
-        await FirebaseFirestore.instance.collection('threads').add({
-          'id': currentUser!.uid,
-          'sender': username,
-          'message': messageController.text,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-        messageController.clear();
-        widget.panelController.close();
-      }
-    } catch (e) {
-      rethrow;
+  final UserModel _fakeUser = UserModel(
+    id: '1',
+    name: 'John Doe',
+    username: 'johndoe',
+    profileImageUrl: 'https://i.pravatar.cc/150?img=3',
+    bio: 'Flutter Developer | Coffee Lover ☕️ | Building awesome apps',
+    followers: ['user1', 'user2', 'user3'],
+    following: ['user4', 'user5'],
+  );
+
+  void _postThreadMessage() {
+    if (messageController.text.isNotEmpty) {
+      // In a real app, this would save to Firestore
+      messageController.clear();
+      widget.panelController.close();
     }
-  }
-
-  Future<UserModel> fetchUserData() async {
-    try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser!.uid)
-          .get();
-      final user = UserModel.fromMap(userDoc.data() as Map<String, dynamic>);
-
-      return user;
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  void initState() {
-    fetchUser = fetchUserData();
-    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: FutureBuilder<UserModel>(
-          future: fetchUser,
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                  ),
-                ),
-              );
-            } else if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
-            }
-            final user = snapshot.data;
-            return Column(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                TextButton(
+                  onPressed: () {
+                    widget.panelController.close();
+                  },
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const Text(
+                  'New thread',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
+                ),
+                TextButton(
+                  onPressed: _postThreadMessage,
+                  child: const Text(
+                    'Post',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(thickness: 1),
+          Padding(
+            padding: const EdgeInsets.only(top: 12.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  backgroundImage: NetworkImage(_fakeUser.profileImageUrl ?? 'https://i.pravatar.cc/150?img=3'),
+                  radius: 25,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      TextButton(
-                        onPressed: () {
-                          widget.panelController.close();
-                        },
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
-                              color: Colors.black, fontWeight: FontWeight.bold),
+                      Text(
+                        _fakeUser.username,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Text(
-                        'New thread',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 17),
-                      ),
-                      TextButton(
-                        onPressed: () => postThreadMessage(user?.name ?? ""),
-                        child: const Text(
-                          'Post',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                      TextFormField(
+                        controller: messageController,
+                        decoration: const InputDecoration(
+                          hintText: 'Start a thread...',
+                          hintStyle: TextStyle(fontSize: 14),
+                          border: InputBorder.none,
                         ),
+                        maxLines: null,
+                        style: const TextStyle(fontSize: 14),
                       ),
                     ],
                   ),
                 ),
-                const Divider(thickness: 1),
-                Padding(
-                  padding: const EdgeInsets.only(top: 12.0),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        foregroundImage:
-                            NetworkImage(user?.profileImageUrl ?? ""),
-                        radius: 25,
-                      ),
-                      const SizedBox(
-                        width: 14,
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            Text(
-                              user?.username ?? "",
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            TextFormField(
-                              controller: messageController,
-                              decoration: const InputDecoration(
-                                hintText: 'Start a thread...',
-                                hintStyle: TextStyle(fontSize: 14),
-                                border: InputBorder.none,
-                              ),
-                              maxLines: null,
-                              style: const TextStyle(fontSize: 14),
-                            )
-                          ],
-                        ),
-                      )
-                    ],
-                  ),
-                )
               ],
-            );
-          }),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

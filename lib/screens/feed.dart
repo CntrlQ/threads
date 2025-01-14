@@ -4,14 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:thread_clone_flutter/model/thread_message.dart';
-// import 'package:thread_clone_flutter/model/thread_message.dart';
-// import 'package:thread_clone_flutter/screens/comment_screen.dart';
 import 'package:thread_clone_flutter/screens/post_comment_screen.dart';
-
 import 'package:thread_clone_flutter/widgets/thread_message.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:shimmer/shimmer.dart';
-
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -21,80 +17,51 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
-  final CollectionReference threadCollection =
-      FirebaseFirestore.instance.collection('threads');
-  final CollectionReference userCollection =
-      FirebaseFirestore.instance.collection('users');
-  final userId = FirebaseAuth.instance.currentUser!.uid;
   final ScrollController _scrollController = ScrollController();
-  bool _isLoading = false;
-  bool _hasData = false;
-
   String threadDoc = '';
   PanelController panelController = PanelController();
+  bool _isLoading = false;
 
-  final List<Map<String, dynamic>> _fakePosts = [
-    {
-      'id': '1',
-      'senderId': 'user1',
-      'sender': 'nuui.h',
-      'senderProfileImageUrl': 'https://i.pravatar.cc/150?img=1',
-      'message': "What's new?",
-      'imageUrl': 'https://picsum.photos/500/300?random=1',
-      'timestamp': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 2))),
-      'likes': [],
-      'comments': [],
-    },
-    {
-      'id': '2',
-      'senderId': 'user2',
-      'sender': 'ghibliarchives',
-      'senderProfileImageUrl': 'https://i.pravatar.cc/150?img=2',
-      'message': "Film: Kiki's Delivery Service (1989)",
-      'imageUrl': 'https://picsum.photos/500/300?random=2',
-      'timestamp': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 4))),
-      'likes': [],
-      'comments': [],
-    },
-    {
-      'id': '3',
-      'senderId': 'user3',
-      'sender': 'norhudaifha0713',
-      'senderProfileImageUrl': 'https://i.pravatar.cc/150?img=3',
-      'message': "Yo, ooh this drama breaks me everyday. I want your buy 🥲",
-      'imageUrl': 'https://picsum.photos/500/300?random=3',
-      'timestamp': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 6))),
-      'likes': [],
-      'comments': [],
-    },
+  final List<ThreadMessage> _fakePosts = [
+    ThreadMessage(
+      id: '1',
+      senderId: 'user1',
+      senderName: 'nuui.h',
+      senderProfileImageUrl: 'https://i.pravatar.cc/150?img=1',
+      message: "What's new?",
+      imageUrl: 'https://picsum.photos/500/300?random=1',
+      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+      likes: [],
+      comments: [],
+    ),
+    ThreadMessage(
+      id: '2',
+      senderId: 'user2',
+      senderName: 'ghibliarchives',
+      senderProfileImageUrl: 'https://i.pravatar.cc/150?img=2',
+      message: "Film: Kiki's Delivery Service (1989)",
+      imageUrl: 'https://picsum.photos/500/300?random=2',
+      timestamp: DateTime.now().subtract(const Duration(hours: 4)),
+      likes: [],
+      comments: [],
+    ),
+    ThreadMessage(
+      id: '3',
+      senderId: 'user3',
+      senderName: 'norhudaifha0713',
+      senderProfileImageUrl: 'https://i.pravatar.cc/150?img=3',
+      message: "Yo, ooh this drama breaks me everyday. I want your buy 🥲",
+      imageUrl: 'https://picsum.photos/500/300?random=3',
+      timestamp: DateTime.now().subtract(const Duration(hours: 6)),
+      likes: [],
+      comments: [],
+    ),
   ];
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _initializeFakeData();
-  }
-
-  Future<void> _initializeFakeData() async {
-    try {
-      // Clear existing data first
-      QuerySnapshot existingDocs = await threadCollection.get();
-      for (var doc in existingDocs.docs) {
-        await doc.reference.delete();
-      }
-
-      // Add fake data
-      for (var post in _fakePosts) {
-        await threadCollection.add(post);
-      }
-      
-      setState(() {
-        _hasData = true;
-      });
-    } catch (e) {
-      debugPrint('Error initializing fake data: $e');
-    }
   }
 
   @override
@@ -106,27 +73,7 @@ class _FeedScreenState extends State<FeedScreen> {
   void _onScroll() {
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 &&
         !_isLoading) {
-      // Load more posts
-      _loadMorePosts();
-    }
-  }
-
-  Future<void> _loadMorePosts() async {
-    // Implement pagination logic here
-  }
-
-  Future<String> getSenderImageUrl(String id) async {
-    try {
-      final userDoc = await userCollection.doc(id).get();
-      if (userDoc.exists) {
-        final userData = userDoc.data() as Map<String, dynamic>;
-        return (userData['profileImageUrl'] ?? 'assets/dp.jpeg').toString();
-      } else {
-        return 'assets/dp.jpeg';
-      }
-    } catch (e) {
-      debugPrint('Error fetching sender image URL: $e');
-      return 'assets/dp.jpeg';
+      // Load more posts if needed
     }
   }
 
@@ -220,124 +167,45 @@ class _FeedScreenState extends State<FeedScreen> {
           body: RefreshIndicator(
             color: Colors.black,
             onRefresh: () async {
-              setState(() {
-                _hasData = false;
-              });
-              await Future.delayed(const Duration(seconds: 1));
-              await _initializeFakeData();
+              setState(() {});
+              return Future.delayed(const Duration(seconds: 1));
             },
-            child: !_hasData
-                ? _buildLoadingShimmer()
-                : StreamBuilder<QuerySnapshot>(
-                    stream: threadCollection
-                        .orderBy('timestamp', descending: true)
-                        .limit(20)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return _buildLoadingShimmer();
-                      }
-
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.error_outline, size: 48, color: Colors.grey),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Error: ${snapshot.error}',
-                                style: const TextStyle(color: Colors.grey),
-                              ),
-                            ],
+            child: AnimationLimiter(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(16),
+                itemCount: _fakePosts.length,
+                itemBuilder: (context, index) {
+                  return AnimationConfiguration.staggeredList(
+                    position: index,
+                    duration: const Duration(milliseconds: 375),
+                    child: SlideAnimation(
+                      verticalOffset: 50.0,
+                      child: FadeInAnimation(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: ThreadMessageWidget(
+                            message: _fakePosts[index],
+                            onLike: () {},
+                            onDisLike: () {},
+                            onComment: () {
+                              setState(() {
+                                threadDoc = _fakePosts[index].id;
+                              });
+                              panelController.open();
+                            },
+                            panelController: panelController,
                           ),
-                        );
-                      }
-
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'No threads yet',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        );
-                      }
-
-                      return AnimationLimiter(
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount: snapshot.data!.docs.length,
-                          itemBuilder: (context, index) {
-                            final doc = snapshot.data!.docs[index];
-                            final data = doc.data() as Map<String, dynamic>;
-                            final threadMessage = ThreadMessage.fromMap(data);
-
-                            return AnimationConfiguration.staggeredList(
-                              position: index,
-                              duration: const Duration(milliseconds: 375),
-                              child: SlideAnimation(
-                                verticalOffset: 50.0,
-                                child: FadeInAnimation(
-                                  child: ThreadMessageWidget(
-                                    message: threadMessage,
-                                    onLike: () => likeThreadMessage(doc.id),
-                                    onDisLike: () => dislikeThreadMessage(doc.id),
-                                    onComment: () => setState(() => threadDoc = doc.id),
-                                    panelController: panelController,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
                         ),
-                      );
-                    },
-                  ),
-          ),
-        ),
-      ),
-      floatingActionButton: OpenContainer(
-        transitionDuration: const Duration(milliseconds: 500),
-        openBuilder: (context, _) => PostCommentScreen(
-          threadDoc: '',
-          panelController: panelController,
-        ),
-        closedShape: const CircleBorder(),
-        closedColor: Colors.black,
-        closedBuilder: (context, openContainer) => FloatingActionButton(
-          backgroundColor: Colors.black,
-          onPressed: openContainer,
-          child: const Icon(
-            Icons.edit,
-            color: Colors.white,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
         ),
       ),
     );
-  }
-
-  Future<void> likeThreadMessage(String id) async {
-    try {
-      await threadCollection.doc(id).update({
-        'likes': FieldValue.arrayUnion([userId])
-      });
-    } catch (e) {
-      debugPrint(e.toString());
-    }
-  }
-
-  Future<void> dislikeThreadMessage(String id) async {
-    try {
-      await threadCollection.doc(id).update({
-        'likes': FieldValue.arrayRemove([userId])
-      });
-    } catch (e) {
-      debugPrint(e.toString());
-    }
   }
 }
