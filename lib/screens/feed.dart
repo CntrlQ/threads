@@ -27,7 +27,7 @@ class _FeedScreenState extends State<FeedScreen> {
       FirebaseFirestore.instance.collection('users');
   final userId = FirebaseAuth.instance.currentUser!.uid;
   final ScrollController _scrollController = ScrollController();
-  final bool _isLoading = false;
+  bool _isLoading = false;
 
   String threadDoc = '';
   PanelController panelController = PanelController();
@@ -203,7 +203,7 @@ class _FeedScreenState extends State<FeedScreen> {
                               onLike: () => likeThreadMessage(doc.id),
                               onDisLike: () => dislikeThreadMessage(doc.id),
                               onComment: () => setState(() => threadDoc = doc.id),
-                              panelController: panelController, senderId: threadMessage.senderId,
+                              panelController: panelController,
                             ),
                           ),
                         ),

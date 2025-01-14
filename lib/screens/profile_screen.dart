@@ -220,7 +220,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               userThread[index].id),
                                           onComment: () {},
                                           panelController: panelController,
-                                          senderId: user.id,
                                         );
                                       },
                                     );
