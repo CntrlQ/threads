@@ -137,25 +137,44 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
           ),
         ),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
+          preferredSize: const Size.fromHeight(48),
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: Color(0xFFE0E0E0),
+                  width: 0.5,
+                ),
+              ),
+            ),
             child: TabBar(
               controller: _tabController,
               isScrollable: true,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.black,
-              indicator: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(20),
+              labelColor: Colors.black,
+              unselectedLabelColor: Colors.grey,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
               ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: Colors.transparent,
-              tabs: [
-                _buildTab('All'),
-                _buildTab('Follows'),
-                _buildTab('Replies'),
-                _buildTab('Mentions'),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 15,
+              ),
+              indicator: const UnderlineTabIndicator(
+                borderSide: BorderSide(
+                  color: Colors.black,
+                  width: 2,
+                ),
+                insets: EdgeInsets.symmetric(horizontal: 16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              labelPadding: const EdgeInsets.symmetric(horizontal: 24),
+              tabs: const [
+                Tab(text: 'All'),
+                Tab(text: 'Follows'),
+                Tab(text: 'Replies'),
+                Tab(text: 'Mentions'),
               ],
             ),
           ),
@@ -190,20 +209,6 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
           _buildEmptyState('No mentions yet'),
         ],
       ),
-    );
-  }
-
-  Widget _buildTab(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.grey.shade300,
-          width: 1,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(text),
     );
   }
 
