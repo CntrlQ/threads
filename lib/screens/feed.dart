@@ -27,7 +27,7 @@ class _FeedScreenState extends State<FeedScreen> {
       FirebaseFirestore.instance.collection('users');
   final userId = FirebaseAuth.instance.currentUser!.uid;
   final ScrollController _scrollController = ScrollController();
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   String threadDoc = '';
   PanelController panelController = PanelController();
